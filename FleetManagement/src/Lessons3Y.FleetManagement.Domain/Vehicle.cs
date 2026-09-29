@@ -76,5 +76,7 @@ namespace Lessons3Y.FleetManagement.Domain
             FuelLevelPercentage = Math.Min(100.0, FuelLevelPercentage + percentageAdded);
         }
 
+        //TODO: implementare i metodi per verificare se il veicolo è in riserva IsInReserve() (fuel level < 15%) e se è pieno IsFullTank (fuel level > 99% )
+
     }
 }
