@@ -1,4 +1,6 @@
-﻿namespace Lessons3Y.FleetManagement.Domain
+﻿using Lessons3Y.FleetManagement.Domain.ValueObjects;
+
+namespace Lessons3Y.FleetManagement.Domain
 {
     /// <summary>
     /// Represents a vehicle in the fleet management system, including its properties and behaviors.
@@ -6,53 +8,45 @@
     public class Vehicle
     {
         public Guid Id { get; }
-        public string LicensePlate { get; private set; }
+        public LicensePlate LicensePlate { get; } // Value Object
         public double OdometerKm { get; private set; }
-        public decimal DailyRateAmount { get; private set; }
-        public string Currency { get; private set; }
+        public Money DailyRate { get; private set; } // Value Object
         public double FuelLevelPercentage { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the Vehicle class with the specified parameters.
+        /// Initializes a new instance of the Vehicle class with the specified properties, performing validation on the input parameters.
         /// </summary>
         /// <param name="id"></param>
         /// <param name="licensePlate"></param>
         /// <param name="initialKm"></param>
-        /// <param name="dailyRateAmount"></param>
-        /// <param name="currency"></param>
+        /// <param name="dailyRate"></param>
         /// <exception cref="ArgumentException"></exception>
-        public Vehicle(Guid id, string licensePlate, double initialKm, decimal dailyRateAmount, string currency = "EUR")
+        /// <exception cref="ArgumentNullException"></exception>
+        public Vehicle(Guid id, LicensePlate licensePlate, double initialKm, Money dailyRate)
         {
             if (id == Guid.Empty)
                 throw new ArgumentException("L'ID del veicolo non può essere vuoto.", nameof(id));
 
-            // Validazione stringa targa fatta "a mano" nell'entità
-            if (string.IsNullOrWhiteSpace(licensePlate))
-                throw new ArgumentException("La targa è obbligatoria.", nameof(licensePlate));
-
-            string cleanPlate = licensePlate.Trim().ToUpperInvariant();
-            if (cleanPlate.Length < 6 || cleanPlate.Length > 8)
-                throw new ArgumentException("Formato targa non valido.", nameof(licensePlate));
-
             if (initialKm < 0)
-                throw new ArgumentException("Il chilometraggio non può essere negativo.", nameof(initialKm));
-
-            if (dailyRateAmount < 0)
-                throw new ArgumentException("La tariffa non può essere negativa.", nameof(dailyRateAmount));
-
-            if (string.IsNullOrWhiteSpace(currency))
-                throw new ArgumentException("La valuta è obbligatoria.", nameof(currency));
+                throw new ArgumentException("Il chilometraggio iniziale non può essere negativo.", nameof(initialKm));
 
             Id = id;
-            LicensePlate = cleanPlate;
+            //licensePlate ?? --> if licensePlate is null, throw an exception. licensePlate is a value object, so we want to ensure it's not null when creating a Vehicle instance. 
+            //licensePlate is null if the caller of the constructor passes null for the licensePlate parameter.
+            LicensePlate = licensePlate ?? throw new ArgumentNullException(nameof(licensePlate));
             OdometerKm = initialKm;
-            DailyRateAmount = dailyRateAmount;
-            Currency = currency.Trim().ToUpperInvariant();
+            DailyRate = dailyRate ?? throw new ArgumentNullException(nameof(dailyRate));
             FuelLevelPercentage = 100.0;
+
+            /*
+            //potremmo scrivere il controlli anche in questo modo:
+            ArgumentNullException.ThrowIfNull(licensePlate);
+            ArgumentNullException.ThrowIfNull(dailyRate);
+            */
         }
 
         /// <summary>
-        /// Records a trip for the vehicle, updating the odometer and fuel level.
+        /// Records a trip for the vehicle, updating the odometer and fuel level based on the distance driven and fuel consumed percentage.
         /// </summary>
         /// <param name="kilometersDriven"></param>
         /// <param name="fuelConsumedPercentage"></param>
@@ -68,9 +62,9 @@
             OdometerKm += kilometersDriven;
             FuelLevelPercentage = Math.Max(0.0, FuelLevelPercentage - fuelConsumedPercentage);
         }
-
+        
         /// <summary>
-        /// Refuels the vehicle by a specified percentage, ensuring the fuel level does not exceed 100%.
+        /// Refuels the vehicle, updating the fuel level based on the percentage added.
         /// </summary>
         /// <param name="percentageAdded"></param>
         /// <exception cref="ArgumentException"></exception>
